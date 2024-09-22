@@ -26,6 +26,9 @@ class Car(StatesGroup):
     car_type = State()
 
 
+car_types = ["легковая", "внедорожник", "минивен", "говновоз"]
+
+
 @form_router.message(CommandStart())
 async def command_start(message: Message, state: FSMContext) -> None:
     await state.set_state(Car.car_type)
@@ -45,15 +48,24 @@ async def new_application(message: Message, state: FSMContext) -> None:
     await message.answer(
         "Ваше заявление созданно! Пожалуйста, выберете тип вашей машины",
         reply_markup=ReplyKeyboardMarkup(
-            keyboard=[
-                [
-                    KeyboardButton(text="Легковая"),
-                    KeyboardButton(text="Внедорожник"),
-                    KeyboardButton(text="Минивен"),
-                ]
-            ],
+            keyboard=[[KeyboardButton(text=car.capitalize()) for car in car_types]],
             resize_keyboard=True)
     )
+
+
+@form_router.message(Car.car_type)
+async def car(message: Message, state: FSMContext) -> None:
+    if message.text.casefold() in car_types:
+        await message.answer(f"Вы выбрали {message.text.casefold().capitalize()}")
+    else:
+        await state.set_state(Car.car_type)
+        await message.answer(
+            f"Не известный тип автомобиля, попробуйте еще раз",
+            reply_markup=ReplyKeyboardMarkup(
+                keyboard=[[KeyboardButton(text=car.capitalize()) for car in car_types]],
+                resize_keyboard=True
+            )
+        )
 
 
 async def show_summary(message: Message, data: Dict[str, Any], positive: bool = True) -> None:
