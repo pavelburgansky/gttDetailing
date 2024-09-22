@@ -42,7 +42,18 @@ async def command_start(message: Message, state: FSMContext) -> None:
 @form_router.message(Command("new_application"))
 async def new_application(message: Message, state: FSMContext) -> None:
     await state.set_state(Car.car_type)
-    await message.answer("New application!")
+    await message.answer(
+        "Ваше заявление созданно! Пожалуйста, выберете тип вашей машины",
+        reply_markup=ReplyKeyboardMarkup(
+            keyboard=[
+                [
+                    KeyboardButton(text="Легковая"),
+                    KeyboardButton(text="Внедорожник"),
+                    KeyboardButton(text="Минивен"),
+                ]
+            ],
+            resize_keyboard=True)
+    )
 
 
 async def show_summary(message: Message, data: Dict[str, Any], positive: bool = True) -> None:
