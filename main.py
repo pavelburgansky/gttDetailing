@@ -14,6 +14,7 @@ from aiogram.types import (
     Message,
     ReplyKeyboardRemove,
 )
+from aiogram.utils.formatting import as_list, as_section, Bold, as_numbered_list, Text
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
 TOKEN = getenv("BOT_TOKEN")
@@ -77,7 +78,31 @@ class GTTScene(Scene, state="quiz"):
 
     @on.message.exit()
     async def on_exit(self, message: Message, state: FSMContext) -> None:
-        pass
+        data = await state.get_data()
+        answers = data.get("answers", {})
+
+        car_type = answers["car_choosing"]
+        summary, price = [], 0
+
+        for key, value in answers.items():
+            if value == car_type:
+                continue
+            summary.append(f"{key} {value}")
+            price += value
+
+        content = as_list(
+            Text(
+                Bold(f"Ваш тип машины: "),
+                f"{car_type}\n"
+            ),
+            as_section(
+                Bold("Услуги: "),
+                as_numbered_list(*summary)
+            ),
+            Text(Bold(f"\nИтог: "), f"{price}")
+        )
+
+        await message.answer(**content.as_kwargs(), reply_markup=ReplyKeyboardRemove())
 
     @on.message(F.text)
     async def answer(self, message: Message, state: FSMContext) -> None:
@@ -95,6 +120,9 @@ class GTTScene(Scene, state="quiz"):
             else:
                 await message.answer("Не известный тип автомобиля, попробуйте еще раз")
         elif step == "service_choosing":
+            if message.text.casefold() == "завершить выбор услуг":
+                return await self.wizard.exit()
+
             if path is None:
                 options = option_list.keys()
             else:
@@ -107,10 +135,6 @@ class GTTScene(Scene, state="quiz"):
                     path = []
                 path.append(message.text)
         await self.wizard.retake(step=step, path=path)
-
-    @on.message()
-    async def unknown_message(self, message: Message) -> None:
-        await message.answer("Please select an answer.")
 
 
 quiz_router = Router(name=__name__)
